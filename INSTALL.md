@@ -8,12 +8,34 @@
 ## 安装步骤
 
 ### 1. 安装 Rust 工具链
-- 访问 https://www.rust-lang.org/zh-CN/tools/install
-- 下载 rustup-init.exe
-- 运行安装程序
-- 按照提示完成安装
-- 重启命令提示符
-- 验证安装：`rustc --version` 和 `cargo --version`
+
+**方法一：手动下载安装（推荐）**
+1. 访问 https://www.rust-lang.org/zh-CN/tools/install
+2. 点击"立即安装"按钮
+3. 下载适用于Windows的rustup-init.exe文件
+4. 双击下载的文件并按照安装向导完成安装
+5. 安装完成后，关闭并重新打开命令提示符
+6. 验证安装：
+   ```bash
+   rustc --version
+   cargo --version
+   ```
+
+**方法二：使用winget安装（适用于Windows 10/11）**
+1. 打开PowerShell
+2. 运行命令：
+   ```bash
+   winget install --id Rustlang.Rustup
+   ```
+3. 安装完成后，关闭并重新打开命令提示符
+
+**方法三：使用Chocolatey安装（如果您已安装Chocolatey）**
+1. 打开命令提示符
+2. 运行命令：
+   ```bash
+   choco install rust
+   ```
+3. 安装完成后，关闭并重新打开命令提示符
 
 ### 2. 安装Windows开发工具
 
@@ -35,18 +57,29 @@
 
 ### 开发模式
 ```bash
+# 进入项目目录
+cd G:\GitHub\HamsterDrive
+
 # 构建并运行项目
 cargo run
 ```
 
 ### 构建生产版本
 ```bash
+# 进入项目目录
+cd G:\GitHub\HamsterDrive
+
 # 构建优化版本
 cargo build --release
 
 # 运行优化版本
 cargo run --release
 ```
+
+### 使用批处理文件运行
+您也可以直接双击项目目录中的批处理文件：
+- [run.bat](file:///g%3A/GitHub/HamsterDrive/run.bat) - 构建并运行项目
+- [build.bat](file:///g%3A/GitHub/HamsterDrive/build.bat) - 仅构建项目
 
 ## 常见问题
 
