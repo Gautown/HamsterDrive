@@ -1,4 +1,4 @@
-# HamsterDrive 环境安装指南
+﻿# HamsterDrive 环境安装指南
 
 ## 必需环境
 

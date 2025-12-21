@@ -1,4 +1,4 @@
-use crate::error::HamsterError;
+﻿use crate::error::HamsterError;
 
 /// 扫描系统硬件组件
 pub fn scan_hardware() -> Result<Vec<String>, HamsterError> {

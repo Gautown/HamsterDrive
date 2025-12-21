@@ -1,4 +1,4 @@
-use crate::error::HamsterError;
+﻿use crate::error::HamsterError;
 
 /// 检查驱动更新
 pub fn check_updates() -> Result<Vec<String>, HamsterError> {

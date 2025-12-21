@@ -1,4 +1,4 @@
-// 最小化版本的HamsterDrive，用于演示核心功能
+﻿// 最小化版本的HamsterDrive，用于演示核心功能
 mod error;
 
 use error::HamsterError;

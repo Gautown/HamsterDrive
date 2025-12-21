@@ -1,0 +1,7 @@
+[package]
+name = "winsafe_feature_test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+winsafe = { version = "0.0.17", features = ["kernel", "user"] }

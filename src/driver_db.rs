@@ -1,4 +1,4 @@
-use reqwest;
+﻿use reqwest;
 use crate::error::HamsterError;
 
 /// 检查驱动更新状态

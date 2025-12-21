@@ -1,4 +1,4 @@
-/// 测试WinSafe功能的独立程序
+﻿/// 测试WinSafe功能的独立程序
 use winsafe::prelude::*;
 use winsafe::{HWND, HINSTANCE};
 

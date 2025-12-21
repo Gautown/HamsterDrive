@@ -1,4 +1,4 @@
-mod error;
+﻿mod error;
 mod gui;
 mod scan;
 mod backup;
@@ -20,18 +20,6 @@ fn verify_driver_signature(driver_path: &str) -> Result<bool, HamsterError> {
         // 其他文件类型不被认为是驱动文件
         Err(HamsterError::SignatureError("无效的驱动文件类型".to_string()))
     }
-}
-
-/// 扫描系统硬件组件
-fn scan_hardware() -> Result<Vec<String>, HamsterError> {
-    // 示例：获取硬件信息
-    let hardware_list = vec![
-        "CPU: Intel Core i7".to_string(),
-        "Memory: 16GB DDR4".to_string(),
-        "Disk: 1TB SSD".to_string(),
-    ];
-    
-    Ok(hardware_list)
 }
 
 /// 显示所有已安装的驱动

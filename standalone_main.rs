@@ -1,4 +1,4 @@
-/// HamsterDrive - Windows驱动管理工具（独立版本）
+﻿/// HamsterDrive - Windows驱动管理工具（独立版本）
 /// 这个版本不依赖外部库，可以直接编译运行
 
 #[derive(Debug)]
