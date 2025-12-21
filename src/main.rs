@@ -1,4 +1,12 @@
 mod error;
+mod gui;
+mod scan;
+mod backup;
+mod restore;
+mod update;
+mod driver_db;
+mod signature;
+mod list;
 
 use error::HamsterError;
 
@@ -39,37 +47,11 @@ fn show_installed_drivers() -> Result<Vec<String>, HamsterError> {
     Ok(drivers)
 }
 
-fn main() -> Result<(), HamsterError> {
-    println!("HamsterDrive - Windows驱动管理工具（最小化演示版）");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("HamsterDrive - Windows驱动管理工具（GUI版本）");
     
-    // 验证驱动签名
-    let driver_path = "C:\\Windows\\System32\\drivers\\example.sys";
-    match verify_driver_signature(driver_path) {
-        Ok(valid) => println!("驱动签名验证结果: {}", valid),
-        Err(e) => println!("错误: {}", e),
-    }
-    
-    // 扫描硬件
-    match scan_hardware() {
-        Ok(hardware) => {
-            println!("扫描到 {} 个硬件组件:", hardware.len());
-            for item in hardware {
-                println!("  - {}", item);
-            }
-        },
-        Err(e) => println!("硬件扫描错误: {}", e),
-    }
-    
-    // 显示驱动列表
-    match show_installed_drivers() {
-        Ok(drivers) => {
-            println!("找到 {} 个已安装驱动:", drivers.len());
-            for driver in drivers {
-                println!("  - {}", driver);
-            }
-        },
-        Err(e) => println!("驱动列表错误: {}", e),
-    }
+    // 启动GUI
+    gui::run()?;
     
     Ok(())
 }
