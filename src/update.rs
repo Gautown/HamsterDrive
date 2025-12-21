@@ -1,5 +1,4 @@
 use crate::error::HamsterError;
-use crate::driver_db;
 
 /// 检查驱动更新
 pub fn check_updates() -> Result<Vec<String>, HamsterError> {

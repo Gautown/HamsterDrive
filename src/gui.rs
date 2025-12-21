@@ -1,12 +1,13 @@
-use eframe::{egui, epi};
+use eframe::egui;
 use crate::{scan, backup, restore, update, list};
 
 pub fn run() -> Result<(), eframe::Error> {
     let app = HamsterDriveApp::default();
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
-        Box::new(app),
+        "HamsterDrive 驱动管理",
         native_options,
+        Box::new(|_cc| Ok(Box::new(app))),
     )
 }
 
@@ -19,10 +20,8 @@ struct HamsterDriveApp {
     restore_status: String,
 }
 
-impl epi::App for HamsterDriveApp {
-    fn name(&self) -> &str { "HamsterDrive 驱动管理" }
-    
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut epi::Frame) {
+impl eframe::App for HamsterDriveApp {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("HamsterDrive 驱动管理");
             
