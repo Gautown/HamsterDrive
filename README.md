@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # HamsterDrive - Windows驱动管理工具
 
 HamsterDrive是一个用于管理和维护Windows系统驱动程序的工具。它提供了完整的驱动程序生命周期管理功能，包括扫描、备份、恢复和更新驱动程序。
@@ -139,3 +140,7 @@ pacman -S mingw-w64-x86_64-gcc
 ## 许可证
 
 本项目采用MIT许可证。
+=======
+# HamsterDrive
+仓鼠驱动助手
+>>>>>>> cca1b56b97ef0dcbcbf8680fc5639f066c78f43a
