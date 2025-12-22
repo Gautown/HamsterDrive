@@ -35,3 +35,10 @@ impl From<std::io::Error> for HamsterError {
         HamsterError::IoError(error.to_string())
     }
 }
+
+// 为Box<dyn std::error::Error>实现From trait，方便转换
+impl From<Box<dyn std::error::Error>> for HamsterError {
+    fn from(error: Box<dyn std::error::Error>) -> Self {
+        HamsterError::Unknown(error.to_string())
+    }
+}

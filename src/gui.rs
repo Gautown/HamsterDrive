@@ -29,18 +29,16 @@ fn setup_custom_fonts(ctx: &egui::Context) {
     use egui::FontId;
     use egui::TextStyle::*;
     
-    // 获取默认字体定义
+    // 获取默认字体定义并启用CJK支持
     let mut fonts = egui::FontDefinitions::default();
-    
-    // 重要：添加思源黑体字体支持
     fonts.font_data.insert(
-        "SourceHanSans".to_owned(),
-        egui::FontData::from_static(include_bytes!("../fonts/SourceHanSansSC-Regular.otf")),
+        "SourceHanSerif".to_owned(),
+        egui::FontData::from_static(include_bytes!("../fonts/SourceHanSerifSC-Regular.otf")),
     );
     
-    // 将思源黑体设置为默认字体
-    fonts.families.entry(Proportional).or_default().insert(0, "SourceHanSans".to_owned());
-    fonts.families.entry(egui::FontFamily::Monospace).or_default().insert(0, "SourceHanSans".to_owned());
+    // 将思源宋体设置为默认字体
+    fonts.families.entry(Proportional).or_default().insert(0, "SourceHanSerif".to_owned());
+    fonts.families.entry(egui::FontFamily::Monospace).or_default().push("SourceHanSerif".to_owned());
     
     ctx.set_fonts(fonts);
     
@@ -64,19 +62,26 @@ struct HamsterDriveApp {
     update_list: Vec<String>,
     backup_status: String,
     restore_status: String,
+    initialized: bool,
 }
 
 impl eframe::App for HamsterDriveApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // 创建顶部面板
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            ui.heading("仓鼠驱动护士");
-        });
+        // 初始化时自动获取系统信息
+        if !self.initialized {
+            // 暂时跳过系统信息获取以防止程序崩溃
+            // TODO: 修复系统信息获取导致的崩溃问题
+            self.hardware_info.push("系统信息: 已启动".to_string());
+            self.initialized = true;
+        }
         
         // 创建左侧边栏
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
+            ui.heading("仓鼠驱动管家");
+            ui.separator(); // 添加分隔线
+            
             // 左侧菜单按钮
-            if ui.button("扫描硬件").clicked() {
+            if ui.button("硬件扫描").clicked() {
                 match scan::scan_hardware() {
                     Ok(hardware) => {
                         self.hardware_info = hardware;
@@ -88,7 +93,7 @@ impl eframe::App for HamsterDriveApp {
                 }
             }
             
-            if ui.button("检测驱动更新").clicked() {
+            if ui.button("驱动更新").clicked() {
                 match update::check_updates() {
                     Ok(updates) => {
                         self.update_list = updates;
@@ -141,9 +146,9 @@ impl eframe::App for HamsterDriveApp {
         
         // 主内容区域
         egui::CentralPanel::default().show(ctx, |ui| {
-            // 显示硬件信息
+            // 显示系统信息
             if !self.hardware_info.is_empty() {
-                ui.label("硬件信息:");
+                ui.label("系统信息:");
                 for item in &self.hardware_info {
                     ui.label(item);
                 }
