@@ -12,6 +12,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "winapi",
  "winsafe",
  "wmi",
 ]
@@ -4659,9 +4660,9 @@ dependencies = [
 
 [[package]]
 name = "winsafe"
-version = "0.0.17"
+version = "0.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91d454b73a81f11bccf441f4d1e491ee70d804683df8a4056777cf9043f8daa1"
+checksum = "5c46f2d48eb39642e0f57a74637e041c69af704c6a8afaab03558201f64d8870"
 
 [[package]]
 name = "wit-bindgen"
