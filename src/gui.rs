@@ -587,6 +587,10 @@ impl HamsterDriveApp {
                         state.start_x = pos.x;
                         state.start_y = pos.y;
                         
+                        // 重置累计偏移量
+                        state.offset_x = 0.0;
+                        state.offset_y = 0.0;
+                        
                         println!("开始拖动窗口: 鼠标=({:.0}, {:.0})", pos.x, pos.y);
                     }
                 }
@@ -603,16 +607,25 @@ impl HamsterDriveApp {
                         state.last_x = pos.x;
                         state.last_y = pos.y;
                         
-                        // 更新偏移量
+                        // 更新累计偏移量
                         state.offset_x += delta_x;
                         state.offset_y += delta_y;
                         
-                        // 窗口拖动检测逻辑
-                        println!("窗口拖动检测: Δx={:.1}, Δy={:.1}", delta_x, delta_y);
-                        println!("鼠标在整个窗口区域拖动");
-                        
-                        // 实际移动窗口
-                        self.move_window(delta_x as i32, delta_y as i32);
+                        // 只有当累计偏移量超过一定阈值时才移动窗口，提高流畅性
+                        if state.offset_x.abs() > 1.0 || state.offset_y.abs() > 1.0 {
+                            let move_x = state.offset_x.round() as i32;
+                            let move_y = state.offset_y.round() as i32;
+                            
+                            // 重置累计偏移量
+                            state.offset_x = 0.0;
+                            state.offset_y = 0.0;
+                            
+                            // 窗口拖动检测逻辑
+                            println!("窗口拖动检测: Δx={:.1}, Δy={:.1}", move_x, move_y);
+                            
+                            // 实际移动窗口
+                            self.move_window(move_x, move_y);
+                        }
                     }
                 }
             }
@@ -620,6 +633,13 @@ impl HamsterDriveApp {
             // 检测鼠标释放事件（结束拖动）
             if input.any_released() {
                 if state.is_dragging {
+                    // 如果仍有未移动的累计偏移量，则在结束前移动
+                    if state.offset_x.abs() > 0.1 || state.offset_y.abs() > 0.1 {
+                        let move_x = state.offset_x.round() as i32;
+                        let move_y = state.offset_y.round() as i32;
+                        self.move_window(move_x, move_y);
+                    }
+                    
                     state.is_dragging = false;
                     println!("结束拖动窗口");
                 }
@@ -629,12 +649,16 @@ impl HamsterDriveApp {
     
     // 移动窗口
     fn move_window(&self, delta_x: i32, delta_y: i32) {
+        // 跳过小的移动，避免不必要的系统调用
+        if delta_x.abs() < 1 && delta_y.abs() < 1 {
+            return;
+        }
+        
         // 直接使用Windows API移动窗口
         #[cfg(windows)]
         {
-            use winapi::um::winuser::{GetForegroundWindow, SetWindowPos, GetWindowRect, HWND_TOPMOST, HWND_NOTOPMOST, SWP_NOSIZE, SWP_NOZORDER};
+            use winapi::um::winuser::{GetForegroundWindow, SetWindowPos, GetWindowRect, HWND_NOTOPMOST, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW};
             use winapi::shared::windef::RECT;
-            use winapi::ctypes::c_int;
             
             unsafe {
                 let hwnd = GetForegroundWindow();
@@ -644,7 +668,7 @@ impl HamsterDriveApp {
                         let new_x = rect.left + delta_x;
                         let new_y = rect.top + delta_y;
                         
-                        // 移动窗口
+                        // 使用SWP_SHOWWINDOW标志使移动更流畅，减少闪烁
                         SetWindowPos(
                             hwnd,
                             HWND_NOTOPMOST,
@@ -652,10 +676,13 @@ impl HamsterDriveApp {
                             new_y,
                             0, // 宽度不变
                             0, // 高度不变
-                            SWP_NOSIZE | SWP_NOZORDER
+                            SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW
                         );
                         
-                        println!("窗口已移动: Δx={}, Δy={}", delta_x, delta_y);
+                        // 只有在移动幅度较大时才打印日志
+                        if delta_x.abs() > 5 || delta_y.abs() > 5 {
+                            println!("窗口已移动: Δx={}, Δy={}", delta_x, delta_y);
+                        }
                     }
                 }
             }
