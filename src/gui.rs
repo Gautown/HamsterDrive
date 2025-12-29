@@ -559,28 +559,6 @@ impl HamsterDriveApp {
 
     // 设置窗体拖动处理
     fn setup_window_drag_handling(&mut self, ctx: &egui::Context) {
-        // 在右上角添加窗口控制按钮（移到顶部）
-        egui::TopBottomPanel::top("window_controls")
-            .show_separator_line(false)
-            .resizable(false)
-            .min_height(30.0)
-            .show(ctx, |ui: &mut egui::Ui| {
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui: &mut egui::Ui| {
-                    ui.horizontal(|ui: &mut egui::Ui| {
-                        ui.add_space(5.0); // 添加一些空间以避免边缘贴边
-                        if ui.button("X").on_hover_text("关闭").clicked() {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                        }
-                        if ui.button("□").on_hover_text("最大化").clicked() {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(!ctx.input(|i| i.viewport().maximized.unwrap_or(false))));
-                        }
-                        if ui.button("-").on_hover_text("最小化").clicked() {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true));
-                        }
-                    });
-                });
-            });
-        
         // 处理窗口拖动逻辑 - 现在整个窗口都可以拖动
         self.handle_window_drag(ctx);
     }
@@ -600,7 +578,7 @@ impl HamsterDriveApp {
             if input.any_pressed() {
                 if let Some(pos) = current_pos {
                     // 检查是否在窗口控制按钮区域外（允许拖动整个窗口，但排除按钮区域）
-                    let is_in_button_area = pos.x > 1024.0 - 100.0 && pos.y < 35.0;
+                    let is_in_button_area = pos.x > 1024.0 - 100.0 && pos.y < 50.0;
                     
                     if !is_in_button_area { // 如果不在按钮区域，则可以拖动整个窗口
                         state.is_dragging = true;
