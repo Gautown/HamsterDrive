@@ -37,12 +37,17 @@ fn main() {
     let result = match mode {
         "--gpu" => scan_gpu_info(wmi_con),
         "--activation" => scan_activation_status(wmi_con),
+        "--motherboard" => scan_motherboard_info(wmi_con),
+        "--os" => scan_os_info(wmi_con),
+        "--cpu" => scan_cpu_info(wmi_con),
+        "--memory" => scan_memory_info(wmi_con),
         _ => scan_hardware_info(wmi_con),  // 默认为磁盘信息
     };
     
     match result {
         Ok(output) => {
             // 输出JSON格式的结果到stdout
+            // 使用println!会添加\n，并且自动处理UTF-8编码
             println!("{}", output);
         },
         Err(e) => {
@@ -82,6 +87,30 @@ fn scan_activation_status(wmi_con: WMIConnection) -> Result<String, Box<dyn std:
     Ok(json_result.to_string())
 }
 
+/// 扫描主板信息
+fn scan_motherboard_info(wmi_con: WMIConnection) -> Result<String, Box<dyn std::error::Error>> {
+    let motherboard_info = query_motherboard_info(&wmi_con)?;
+    
+    // 构造JSON响应
+    let json_result = serde_json::json!({
+        "motherboard": motherboard_info
+    });
+    
+    Ok(json_result.to_string())
+}
+
+/// 扫描操作系统信息
+fn scan_os_info(wmi_con: WMIConnection) -> Result<String, Box<dyn std::error::Error>> {
+    let os_info = query_os_info(&wmi_con)?;
+    
+    // 构造JSON响应
+    let json_result = serde_json::json!({
+        "os_info": os_info
+    });
+    
+    Ok(json_result.to_string())
+}
+
 /// 查询Windows激活状态
 fn query_activation_status(wmi_con: &WMIConnection) -> Result<String, Box<dyn std::error::Error>> {
     // 查询SoftwareLicensingProduct类获取激活状态
@@ -112,6 +141,75 @@ fn query_activation_status(wmi_con: &WMIConnection) -> Result<String, Box<dyn st
     };
     
     Ok(status_text.to_string())
+}
+
+/// 查询主板信息
+fn query_motherboard_info(wmi_con: &WMIConnection) -> Result<String, Box<dyn std::error::Error>> {
+    // 查询Win32_BaseBoard类获取主板信息
+    let results: Vec<HashMap<String, Variant>> = wmi_con.raw_query("SELECT Manufacturer, Product, SerialNumber FROM Win32_BaseBoard")?;
+    
+    // 如果没有找到结果，返回未知状态
+    if results.is_empty() {
+        return Ok("未知主板信息".to_string());
+    }
+    
+    // 获取第一个结果
+    let motherboard = &results[0];
+    
+    // 获取制造商和产品信息
+    let manufacturer = motherboard.get("Manufacturer").map_or("未知制造商".to_string(), |v| {
+        match v {
+            Variant::String(s) => s.clone(),
+            _ => format!("{:?}", v),
+        }
+    });
+    
+    let product = motherboard.get("Product").map_or("未知型号".to_string(), |v| {
+        match v {
+            Variant::String(s) => s.clone(),
+            _ => format!("{:?}", v),
+        }
+    });
+    
+    Ok(format!("制造商: {}, 型号: {}", manufacturer, product))
+}
+
+/// 查询操作系统信息
+fn query_os_info(wmi_con: &WMIConnection) -> Result<String, Box<dyn std::error::Error>> {
+    // 查询Win32_OperatingSystem类获取操作系统信息
+    let results: Vec<HashMap<String, Variant>> = wmi_con.raw_query("SELECT Caption, Version, BuildNumber, OSLanguage FROM Win32_OperatingSystem")?;
+    
+    // 如果没有找到结果，返回未知状态
+    if results.is_empty() {
+        return Ok("未知操作系统信息".to_string());
+    }
+    
+    // 获取第一个结果
+    let os = &results[0];
+    
+    // 获取操作系统名称、版本和构建号
+    let caption = os.get("Caption").map_or("未知系统".to_string(), |v| {
+        match v {
+            Variant::String(s) => s.clone(),
+            _ => format!("{:?}", v),
+        }
+    });
+    
+    let version = os.get("Version").map_or("未知版本".to_string(), |v| {
+        match v {
+            Variant::String(s) => s.clone(),
+            _ => format!("{:?}", v),
+        }
+    });
+    
+    let build_number = os.get("BuildNumber").map_or("未知构建".to_string(), |v| {
+        match v {
+            Variant::String(s) => s.clone(),
+            _ => format!("{:?}", v),
+        }
+    });
+    
+    Ok(format!("{} (版本: {}, 构建: {})", caption, version, build_number))
 }
 
 /// 扫描GPU信息
@@ -222,4 +320,115 @@ fn query_disk_drives(wmi_con: &WMIConnection) -> Result<Vec<serde_json::Value>, 
     }
     
     Ok(disk_list)
+}
+
+/// 扫描CPU信息
+fn scan_cpu_info(wmi_con: WMIConnection) -> Result<String, Box<dyn std::error::Error>> {
+    let cpu_info = query_cpu_info(&wmi_con)?;
+    
+    // 构造JSON响应
+    let json_result = serde_json::json!({
+        "cpu_info": cpu_info
+    });
+    
+    Ok(json_result.to_string())
+}
+
+/// 扫描内存信息
+fn scan_memory_info(wmi_con: WMIConnection) -> Result<String, Box<dyn std::error::Error>> {
+    let memory_info = query_memory_info(&wmi_con)?;
+    
+    // 构造JSON响应
+    let json_result = serde_json::json!({
+        "memory_info": memory_info
+    });
+    
+    Ok(json_result.to_string())
+}
+
+/// 查询CPU信息
+fn query_cpu_info(wmi_con: &WMIConnection) -> Result<String, Box<dyn std::error::Error>> {
+    // 查询Win32_Processor类获取CPU信息
+    let results: Vec<HashMap<String, Variant>> = wmi_con.raw_query("SELECT Name, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors FROM Win32_Processor")?;
+    
+    // 如果没有找到结果，返回未知状态
+    if results.is_empty() {
+        return Ok("未知CPU信息".to_string());
+    }
+    
+    // 获取第一个结果
+    let processor = &results[0];
+    
+    // 获取CPU信息
+    let name = processor.get("Name").map_or("未知CPU".to_string(), |v| {
+        match v {
+            Variant::String(s) => s.clone(),
+            _ => format!("{:?}", v),
+        }
+    });
+    
+    let max_clock_speed = processor.get("MaxClockSpeed").map_or("未知主频".to_string(), |v| {
+        match v {
+            Variant::UI4(speed) => format!("{} MHz", speed),
+            _ => format!("{:?}", v),
+        }
+    });
+    
+    let cores = processor.get("NumberOfCores").map_or("未知核心数".to_string(), |v| {
+        match v {
+            Variant::UI4(count) => format!("{} 核心", count),
+            _ => format!("{:?}", v),
+        }
+    });
+    
+    let logical_processors = processor.get("NumberOfLogicalProcessors").map_or("未知线程数".to_string(), |v| {
+        match v {
+            Variant::UI4(count) => format!("{} 线程", count),
+            _ => format!("{:?}", v),
+        }
+    });
+    
+    Ok(format!("{} ({} 主频: {} 核心: {} 线程)", name, cores, max_clock_speed, logical_processors))
+}
+
+/// 查询内存信息
+fn query_memory_info(wmi_con: &WMIConnection) -> Result<String, Box<dyn std::error::Error>> {
+    // 查询Win32_OperatingSystem类获取总内存信息
+    let results: Vec<HashMap<String, Variant>> = wmi_con.raw_query("SELECT TotalVisibleMemorySize, FreePhysicalMemory FROM Win32_OperatingSystem")?;
+    
+    // 如果没有找到结果，返回未知状态
+    if results.is_empty() {
+        return Ok("未知内存信息".to_string());
+    }
+    
+    // 获取第一个结果
+    let os = &results[0];
+    
+    // 获取总内存大小
+    let total_memory = os.get("TotalVisibleMemorySize").map_or(0u64, |v| {
+        match v {
+            Variant::UI8(bytes) => *bytes,
+            Variant::UI4(bytes) => *bytes as u64,
+            _ => 0,
+        }
+    });
+    
+    // 获取可用内存大小
+    let free_memory = os.get("FreePhysicalMemory").map_or(0u64, |v| {
+        match v {
+            Variant::UI8(bytes) => *bytes,
+            Variant::UI4(bytes) => *bytes as u64,
+            _ => 0,
+        }
+    });
+    
+    // 计算已使用内存
+    let used_memory = total_memory - free_memory;
+    
+    // 转换为更友好的格式
+    let total_gb = total_memory as f64 / (1024.0 * 1024.0);
+    let used_gb = used_memory as f64 / (1024.0 * 1024.0);
+    let free_gb = free_memory as f64 / (1024.0 * 1024.0);
+    
+    Ok(format!("总内存: {:.1} GB, 已使用: {:.1} GB, 可用: {:.1} GB", total_gb, used_gb, free_gb))
 }

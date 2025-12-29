@@ -11,7 +11,8 @@ path = "src/hardware_service.rs"
 
 
 [dependencies]
-winsafe = { version = "0.0.17", features = ["kernel", "user"] }
+winsafe = { version = "0.0.26", features = ["kernel", "user", "gdi"] }
+winapi = { version = "0.3.9", features = ["winuser", "windef", "wtypes"] }
 eframe = "0.28.1"
 egui = "0.28.1"
 reqwest = { version = "0.11", features = ["json"] }

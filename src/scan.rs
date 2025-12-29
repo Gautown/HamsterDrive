@@ -1,18 +1,71 @@
 ﻿use crate::error::HamsterError;
-use winsafe::{GetComputerName, GetSystemInfo, GlobalMemoryStatusEx, MEMORYSTATUSEX, SYSTEM_INFO, GetTickCount64, GetLogicalDrives, GetDiskFreeSpaceEx};
-use winsafe::co::PROCESSOR_ARCHITECTURE;
-// 移除了未使用的导入
+use winsafe::{GetLogicalDrives, GetDiskFreeSpaceEx};
 
 /// 获取主板信息
 fn get_motherboard_info() -> Result<String, Box<dyn std::error::Error>> {
-    // 简化实现，返回占位符信息
-    Ok("制造商和型号: ASUSTeK COMPUTER INC. PRIME Z390-A".to_string())
+    // 通过硬件服务获取主板信息
+    let motherboard_info = get_motherboard_info_from_service()?;
+    Ok(motherboard_info)
 }
 
 /// 获取CPU详细信息
 fn get_cpu_details() -> Result<String, Box<dyn std::error::Error>> {
-    // 简化实现，返回占位符信息
-    Ok("处理器: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz".to_string())
+    // 通过硬件服务获取CPU信息
+    let cpu_info = get_cpu_info_from_service()?;
+    Ok(cpu_info)
+}
+
+/// 获取内存详细信息
+fn get_memory_info() -> Result<String, Box<dyn std::error::Error>> {
+    // 通过硬件服务获取内存信息
+    let memory_info = get_memory_info_from_service()?;
+    Ok(memory_info)
+}
+
+/// 通过调用硬件服务进程获取CPU信息
+fn get_cpu_info_from_service() -> Result<String, Box<dyn std::error::Error>> {
+    use std::process::Command;
+    
+    // 启动硬件服务进程获取CPU信息
+    let output = Command::new("target/debug/hardware_service.exe")
+        .arg("--cpu")
+        .output()?;
+
+    if !output.status.success() {
+        return Err(format!("硬件服务进程执行失败: {:?}", output.status).into());
+    }
+    
+    // 解析JSON输出
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json_value: serde_json::Value = serde_json::from_str(&stdout)?;
+    
+    // 提取CPU信息
+    let cpu_info = json_value.get("cpu_info").and_then(|v| v.as_str()).unwrap_or("未知CPU信息");
+    
+    Ok(cpu_info.to_string())
+}
+
+/// 通过调用硬件服务进程获取内存信息
+fn get_memory_info_from_service() -> Result<String, Box<dyn std::error::Error>> {
+    use std::process::Command;
+    
+    // 启动硬件服务进程获取内存信息
+    let output = Command::new("target/debug/hardware_service.exe")
+        .arg("--memory")
+        .output()?;
+
+    if !output.status.success() {
+        return Err(format!("硬件服务进程执行失败: {:?}", output.status).into());
+    }
+    
+    // 解析JSON输出
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json_value: serde_json::Value = serde_json::from_str(&stdout)?;
+    
+    // 提取内存信息
+    let memory_info = json_value.get("memory_info").and_then(|v| v.as_str()).unwrap_or("未知内存信息");
+    
+    Ok(memory_info.to_string())
 }
 
 /// 获取Windows激活状态
@@ -25,8 +78,35 @@ fn get_windows_activation_status() -> Result<String, Box<dyn std::error::Error>>
 
 /// 获取操作系统版本信息
 fn get_os_version() -> Result<String, Box<dyn std::error::Error>> {
-    // 简化实现，返回占位符信息
-    Ok("Windows 10 Pro (Build 19041) Release 2004".to_string())
+    // 使用简单的方法获取系统信息
+    // 在实际项目中，这里可以扩展为更详细的版本信息获取
+    
+    // 创建一个临时硬件服务来获取操作系统信息
+    let os_info = get_os_info_from_service()?;
+    Ok(os_info)
+}
+
+/// 通过调用硬件服务进程获取操作系统信息
+fn get_os_info_from_service() -> Result<String, Box<dyn std::error::Error>> {
+    use std::process::Command;
+    
+    // 启动硬件服务进程获取操作系统信息
+    let output = Command::new("target/debug/hardware_service.exe")
+        .arg("--os")
+        .output()?;
+
+    if !output.status.success() {
+        return Err(format!("硬件服务进程执行失败: {:?}", output.status).into());
+    }
+    
+    // 解析JSON输出
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json_value: serde_json::Value = serde_json::from_str(&stdout)?;
+    
+    // 提取操作系统信息
+    let os_info = json_value.get("os_info").and_then(|v| v.as_str()).unwrap_or("未知操作系统信息");
+    
+    Ok(os_info.to_string())
 }
 
 /// 获取磁盘容量信息
@@ -225,6 +305,29 @@ fn get_disk_info_from_service() -> Result<Vec<String>, HamsterError> {
     Ok(disk_list)
 }
 
+/// 通过调用硬件服务进程获取主板信息
+fn get_motherboard_info_from_service() -> Result<String, Box<dyn std::error::Error>> {
+    use std::process::Command;
+    
+    // 启动硬件服务进程获取主板信息
+    let output = Command::new("target/debug/hardware_service.exe")
+        .arg("--motherboard")
+        .output()?;
+
+    if !output.status.success() {
+        return Err(format!("硬件服务进程执行失败: {:?}", output.status).into());
+    }
+    
+    // 解析JSON输出
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json_value: serde_json::Value = serde_json::from_str(&stdout)?;
+    
+    // 提取主板信息
+    let motherboard_info = json_value.get("motherboard").and_then(|v| v.as_str()).unwrap_or("未知主板信息");
+    
+    Ok(motherboard_info.to_string())
+}
+
 /// 获取显卡详细信息
 fn get_gpu_details() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     // 使用硬件服务获取显卡信息
@@ -234,17 +337,69 @@ fn get_gpu_details() -> Result<Vec<String>, Box<dyn std::error::Error>> {
 
 // 获取系统信息（启动时显示）
 pub fn get_system_info() -> Result<Vec<String>, HamsterError> {
-    // 暂时返回一个简单的示例数据以防止程序崩溃
-    // TODO: 修复系统信息获取导致的崩溃问题
-    Ok(vec![
-        "Windows版本: Windows 10 Pro".to_string(),
-        "Windows激活状态: 已激活".to_string(),
-        "制造商和型号: ASUSTeK COMPUTER INC. PRIME Z390-A".to_string(),
-        "处理器: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz".to_string(),
-        "内存容量: 16 GB".to_string(),
-        "显卡型号: NVIDIA GeForce GTX 950 (2048 MB)".to_string(),
-        "硬盘信息: 已安装".to_string(),
-    ])
+    let mut system_info = Vec::new();
+    
+    // 获取操作系统版本
+    match get_os_version() {
+        Ok(os_info) => system_info.push(os_info),
+        Err(e) => system_info.push(format!("获取OS版本失败: {}", e))
+    }
+    
+    // 获取Windows激活状态
+    match get_windows_activation_status() {
+        Ok(activation_info) => system_info.push(format!("Windows激活状态: {}", activation_info)),
+        Err(e) => system_info.push(format!("获取激活状态失败: {}", e))
+    }
+    
+    // 获取主板信息
+    match get_motherboard_info() {
+        Ok(mb_info) => system_info.push(mb_info),
+        Err(e) => system_info.push(format!("获取主板信息失败: {}", e))
+    }
+    
+    // 获取CPU信息
+    match get_cpu_details() {
+        Ok(cpu_info) => system_info.push(cpu_info),
+        Err(e) => system_info.push(format!("获取CPU信息失败: {}", e))
+    }
+    
+    // 获取内存信息
+    match get_memory_info() {
+        Ok(memory_info) => system_info.push(memory_info),
+        Err(e) => system_info.push(format!("获取内存信息失败: {}", e))
+    }
+    
+    // 获取显卡信息
+    match get_gpu_details() {
+        Ok(gpu_info_list) => {
+            if !gpu_info_list.is_empty() {
+                system_info.extend(gpu_info_list);
+            } else {
+                system_info.push("显卡信息: 未检测到显卡".to_string());
+            }
+        },
+        Err(e) => system_info.push(format!("获取显卡信息失败: {}", e))
+    }  
+    // 获取硬盘物理信息
+    match get_physical_disk_info() {
+        Ok(physical_disk_info) => {
+            if !physical_disk_info.is_empty() {
+                system_info.push("硬盘信息:".to_string());
+                system_info.extend(physical_disk_info);
+            }
+        },
+        Err(e) => {
+            // 硬盘物理信息获取失败不致命，继续其他信息
+            eprintln!("获取硬盘物理信息失败: {}", e);
+        }
+    }
+    
+    // 如果系统信息为空，添加提示信息
+    if system_info.is_empty() {
+        system_info.push("系统信息: 暂时无法获取系统信息".to_string());
+    }
+    
+    Ok(system_info)
 }
 
 // 扫描设备管理器中的硬件信息（点击按钮时调用）
@@ -264,4 +419,19 @@ pub fn scan_hardware() -> Result<Vec<String>, HamsterError> {
     hardware_list.push("- 硬盘: ST1000DM010-2EP102, Samsung SSD 750 EVO 120G".to_string());
     
     Ok(hardware_list)
+}
+
+// 扫描过时的驱动程序（类似Driver Easy的核心功能）
+pub fn scan_outdated_drivers() -> Result<Vec<String>, HamsterError> {
+    let mut outdated_drivers = Vec::new();
+    
+    // 模拟扫描过时驱动程序
+    // 实际实现中，这里会比较本地驱动版本与数据库中的最新版本
+    outdated_drivers.push("USB驱动 - 有新版本可用 (1.2.3)".to_string());
+    outdated_drivers.push("显卡驱动 - 有新版本可用 (520.48)".to_string());
+    outdated_drivers.push("网卡驱动 - 有新版本可用 (2.0.1)".to_string());
+    outdated_drivers.push("声卡驱动 - 有新版本可用 (1.5.2)".to_string());
+    outdated_drivers.push("蓝牙驱动 - 有新版本可用 (2.1.0)".to_string());
+    
+    Ok(outdated_drivers)
 }
