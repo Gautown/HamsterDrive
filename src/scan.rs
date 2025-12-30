@@ -1,5 +1,6 @@
-﻿use crate::error::HamsterError;
+use crate::error::HamsterError;
 use winsafe::{GetLogicalDrives, GetDiskFreeSpaceEx};
+use std::process::Command;
 
 /// 获取主板信息
 fn get_motherboard_info() -> Result<String, Box<dyn std::error::Error>> {
@@ -266,6 +267,7 @@ fn get_disk_info_from_service() -> Result<Vec<String>, HamsterError> {
     
     // 启动硬件服务进程
     let output = match Command::new(&hardware_service_path)
+        .arg("--disk")
         .output() {
             Ok(output) => output,
             Err(e) => {
@@ -406,32 +408,178 @@ pub fn get_system_info() -> Result<Vec<String>, HamsterError> {
 pub fn scan_hardware() -> Result<Vec<String>, HamsterError> {
     let mut hardware_list = Vec::new();
     
-    // 这里可以添加设备管理器相关的硬件扫描
-    // 目前使用与系统信息相同的数据，但可以扩展为扫描设备管理器
+    // 获取系统信息作为设备管理器扫描结果
+    let system_info = get_system_info()?;
+    
     hardware_list.push("设备管理器扫描结果:".to_string());
-    hardware_list.push("- 主板: ASUSTeK COMPUTER INC. PRIME Z390-A".to_string());
-    hardware_list.push("- 处理器: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz".to_string());
-    hardware_list.push("- 内存: 16.0 GB".to_string());
-    hardware_list.push("- 显卡: NVIDIA GeForce GTX 950 (2048 MB)".to_string());
-    hardware_list.push("- 声卡: Realtek High Definition Audio".to_string());
-    hardware_list.push("- 网卡: Intel(R) Ethernet Connection".to_string());
-    hardware_list.push("- USB控制器: Intel USB 3.0 Controller".to_string());
-    hardware_list.push("- 硬盘: ST1000DM010-2EP102, Samsung SSD 750 EVO 120G".to_string());
+    hardware_list.extend(system_info);
     
     Ok(hardware_list)
 }
 
-// 扫描过时的驱动程序（类似Driver Easy的核心功能）
-pub fn scan_outdated_drivers() -> Result<Vec<String>, HamsterError> {
-    let mut outdated_drivers = Vec::new();
+pub fn scan_outdated_drivers() -> Result<Vec<DriverInfo>, HamsterError> {
+    let all_drivers = get_all_drivers()?;
     
-    // 模拟扫描过时驱动程序
-    // 实际实现中，这里会比较本地驱动版本与数据库中的最新版本
-    outdated_drivers.push("USB驱动 - 有新版本可用 (1.2.3)".to_string());
-    outdated_drivers.push("显卡驱动 - 有新版本可用 (520.48)".to_string());
-    outdated_drivers.push("网卡驱动 - 有新版本可用 (2.0.1)".to_string());
-    outdated_drivers.push("声卡驱动 - 有新版本可用 (1.5.2)".to_string());
-    outdated_drivers.push("蓝牙驱动 - 有新版本可用 (2.1.0)".to_string());
+    let mut outdated = Vec::new();
+    for driver in all_drivers {
+        if driver.status == DriverStatus::Outdated {
+            outdated.push(driver);
+        }
+    }
     
-    Ok(outdated_drivers)
+    Ok(outdated)
+}
+
+// 驱动信息结构体
+#[derive(Debug, Clone)]
+pub struct DriverInfo {
+    pub name: String,
+    pub current_version: String,
+    pub latest_version: String,
+    pub hardware_id: String,
+    pub download_url: String,
+    pub size: String,
+    pub release_date: String,
+    pub status: DriverStatus,
+}
+
+impl std::fmt::Display for DriverInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} (版本: {} -> {})", self.name, self.current_version, self.latest_version)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum DriverStatus {
+    Outdated,
+    UpToDate,
+    NotInstalled,
+}
+
+// 获取所有驱动列表（包括已安装和未安装的）
+pub fn get_all_drivers() -> Result<Vec<DriverInfo>, HamsterError> {
+    #[cfg(windows)]
+    {
+        get_installed_drivers_via_pnputil()
+    }
+    
+    #[cfg(not(windows))]
+    {
+        Ok(Vec::new())
+    }
+}
+
+/// 使用pnputil获取已安装的驱动包信息
+fn get_installed_drivers_via_pnputil() -> Result<Vec<DriverInfo>, HamsterError> {
+    let mut drivers = Vec::new();
+    
+    let output = Command::new("pnputil")
+        .args(&["/enum-drivers"])
+        .output();
+    
+    match output {
+        Ok(result) => {
+            if result.status.success() {
+                let stdout = String::from_utf8_lossy(&result.stdout);
+                drivers = parse_pnputil_output(&stdout);
+            } else {
+                let stderr = String::from_utf8_lossy(&result.stderr);
+                return Err(HamsterError::ScanError(format!("pnputil执行失败: {}", stderr)));
+            }
+        },
+        Err(e) => {
+            return Err(HamsterError::ScanError(format!("执行pnputil命令失败: {}", e)));
+        }
+    }
+    
+    Ok(drivers)
+}
+
+/// 解析pnputil输出
+fn parse_pnputil_output(output: &str) -> Vec<DriverInfo> {
+    let mut drivers = Vec::new();
+    let lines: Vec<&str> = output.lines().collect();
+    
+    println!("解析pnputil输出，共 {} 行", lines.len());
+    
+    let mut current_driver: Option<DriverInfo> = None;
+    
+    for line in lines {
+        let trimmed = line.trim();
+        
+        // 跳过空行和标题行
+        if trimmed.is_empty() || trimmed.starts_with("Microsoft PnP") {
+            // 如果遇到空行，说明当前驱动块结束，保存它
+            if let Some(driver) = current_driver.take() {
+                drivers.push(driver);
+            }
+            continue;
+        }
+        
+        // 查找第一个冒号的位置来分割键值对
+        if let Some(colon_pos) = trimmed.find(':') {
+            let key = trimmed[..colon_pos].trim();
+            let value = trimmed[colon_pos + 1..].trim();
+            
+            println!("键: [{}], 值: [{}]", key, value);
+            
+            if key == "发布名称" || key == "Published Name" {
+                if let Some(driver) = current_driver.take() {
+                    drivers.push(driver);
+                }
+                
+                println!("找到新驱动: {}", value);
+                
+                current_driver = Some(DriverInfo {
+                    name: value.to_string(),
+                    current_version: "未知版本".to_string(),
+                    latest_version: "未知版本".to_string(),
+                    hardware_id: value.to_string(),
+                    download_url: String::new(),
+                    size: "未知大小".to_string(),
+                    release_date: "未知日期".to_string(),
+                    status: DriverStatus::UpToDate,
+                });
+            } else if key == "原始名称" || key == "Original Name" {
+                if let Some(ref mut driver) = current_driver {
+                    println!("更新名称: {} -> {}", driver.name, value);
+                    driver.name = value.to_string();
+                }
+            } else if key == "提供程序名称" || key == "Provider Name" {
+                if let Some(ref mut driver) = current_driver {
+                    println!("更新提供商: {} -> {}", driver.name, value);
+                    driver.name = format!("{} - {}", value, driver.name);
+                }
+            } else if key == "驱动程序版本" || key == "Version" {
+                if let Some(ref mut driver) = current_driver {
+                    // 格式: "MM/DD/YYYY version" 或 "version"
+                    let parts: Vec<&str> = value.split_whitespace().collect();
+                    if parts.len() >= 2 {
+                        // 有日期和版本
+                        driver.release_date = parts[0].to_string();
+                        driver.current_version = parts[1].to_string();
+                        driver.latest_version = parts[1].to_string();
+                    } else if !parts.is_empty() {
+                        // 只有版本
+                        driver.current_version = parts[0].to_string();
+                        driver.latest_version = parts[0].to_string();
+                    }
+                    println!("更新版本: {} - {}", driver.current_version, driver.release_date);
+                }
+            } else if key == "日期" || key == "Date" {
+                if let Some(ref mut driver) = current_driver {
+                    println!("更新日期: {}", value);
+                    driver.release_date = value.to_string();
+                }
+            }
+        }
+    }
+    
+    // 保存最后一个驱动
+    if let Some(driver) = current_driver {
+        drivers.push(driver);
+    }
+    
+    println!("解析完成，共找到 {} 个驱动", drivers.len());
+    drivers
 }
