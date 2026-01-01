@@ -34,24 +34,12 @@ fn setup_custom_fonts(ctx: &egui::Context) {
     // 创建字体定义
     let mut fonts = egui::FontDefinitions::default();
     
-    // 尝试加载 Windows 系统字体
-    #[cfg(windows)]
-    {
-        if let Ok(font_data) = std::fs::read("C:/Windows/Fonts/msyh.ttc") {
-            fonts.font_data.insert(
-                "Microsoft YaHei".to_owned(),
-                egui::FontData::from_owned(font_data),
-            );
-            fonts.families.entry(Proportional).or_default().insert(0, "Microsoft YaHei".to_owned());
-        } else if let Ok(font_data) = std::fs::read("C:/Windows/Fonts/simhei.ttf") {
-            fonts.font_data.insert(
-                "SimHei".to_owned(),
-                egui::FontData::from_owned(font_data),
-            );
-            fonts.families.entry(Proportional).or_default().insert(0, "SimHei".to_owned());
-        }
-        // 如果都失败了，使用默认字体配置
-    }
+    // 为确保中文字符能正确显示，添加中文字符集支持
+    fonts
+        .families
+        .entry(Proportional)
+        .or_default()
+        .insert(0, "emoji-icon-font".to_owned()); // 使用支持中文的字体
     
     // 应用字体设置
     ctx.set_fonts(fonts);
