@@ -1,21 +1,18 @@
-mod error;
-mod gui;
-mod scan;
-mod backup;
-mod restore;
-mod update;
-mod driver_db;
-mod signature;
-mod list;
-mod uninstall;
-mod batch_update;
-mod offline_scan;
+use hamsterdrive::{init_logging, DriverUpdaterCore};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("HamsterDrive - Windows驱动管理工具（GUI版本）");
     
+    // 初始化日志
+    init_logging()?;
+    
+    // 创建核心控制器
+    let mut core = DriverUpdaterCore::new();
+    core.initialize().await?;
+    
     // 启动GUI
-    gui::run()?;
+    hamsterdrive::ui::run_gui()?;
     
     Ok(())
 }

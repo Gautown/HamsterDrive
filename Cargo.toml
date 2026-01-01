@@ -1,22 +1,100 @@
 [package]
 name = "HamsterDrive"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
+authors = ["HamsterDrive Team"]
+description = "Windows驱动管理工具 - 扫描、识别、更新驱动程序"
+repository = "https://github.com/HamsterDrive/HamsterDrive"
+license = "MIT"
+keywords = ["driver", "windows", "hardware", "updater"]
+categories = ["development-tools"]
+
 default-run = "HamsterDrive"
+
+[[bin]]
+name = "HamsterDrive"
+path = "src/main.rs"
 
 [[bin]]
 name = "hardware_service"
 path = "src/hardware_service.rs"
 
-
+[lib]
+name = "hamsterdrive"
+path = "src/lib.rs"
 
 [dependencies]
-winsafe = { version = "0.0.26", features = ["kernel", "user", "gdi"] }
-winapi = { version = "0.3.9", features = ["winuser", "windef", "wtypes"] }
+# UI框架
 eframe = "0.28.1"
 egui = "0.28.1"
-reqwest = { version = "0.11", features = ["json"] }
+egui_extras = "0.28.1"
+
+# Windows API
+winsafe = { version = "0.0.26", features = ["kernel", "user", "gdi", "advapi"] }
+winapi = { version = "0.3.9", features = ["winuser", "windef", "wtypes", "setupapi", "cfgmgr32", "devguid", "winerror", "handleapi", "processthreadsapi", "shellapi", "shlobj", "sysinfoapi", "securitybaseapi"] }
+windows = { version = "0.58", features = ["Win32_Devices_DeviceAndDriverInstallation", "Win32_Foundation", "Win32_System_Registry", "Win32_Security"] }
+
+# 异步运行时
 tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+futures-util = "0.3"
+async-trait = "0.1"
+
+# 网络请求
+reqwest = { version = "0.11", features = ["json", "stream", "rustls-tls"], default-features = false }
+
+# 序列化
 serde = { version = "1.0", features = ["derive"] }
-wmi = "0.15.0"
 serde_json = "1.0"
+toml = "0.8"
+
+# WMI查询
+wmi = "0.15.0"
+
+# 数据库
+diesel = { version = "2.0", features = ["sqlite", "r2d2", "chrono"], optional = true }
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# 日志
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+log = "0.4"
+
+# 工具库
+thiserror = "1.0"
+anyhow = "1.0"
+once_cell = "1.19"
+lazy_static = "1.4"
+regex = "1.10"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.8", features = ["v4", "serde"] }
+sha2 = "0.10"
+md5 = "0.7"
+base64 = "0.22"
+
+# 文件操作
+zip = "2.1"
+walkdir = "2.5"
+
+# 版本比较
+semver = "1.0"
+
+# 系统托盘
+tray-icon = "0.14"
+
+# HTML解析 (用于解析厂商网站)
+scraper = "0.19"
+select = "0.6"
+
+[build-dependencies]
+winres = "0.1"
+
+[features]
+database = ["diesel"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

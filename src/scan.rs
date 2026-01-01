@@ -462,7 +462,6 @@ pub fn get_all_drivers() -> Result<Vec<DriverInfo>, HamsterError> {
     {
         get_installed_drivers_via_pnputil()
     }
-    
     #[cfg(not(windows))]
     {
         Ok(Vec::new())
@@ -509,10 +508,6 @@ fn parse_pnputil_output(output: &str) -> Vec<DriverInfo> {
         
         // 跳过空行和标题行
         if trimmed.is_empty() || trimmed.starts_with("Microsoft PnP") {
-            // 如果遇到空行，说明当前驱动块结束，保存它
-            if let Some(driver) = current_driver.take() {
-                drivers.push(driver);
-            }
             continue;
         }
         
