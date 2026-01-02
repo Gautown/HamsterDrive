@@ -18,3 +18,7 @@ Thumbs.db
 # Windows
 [Cc]argo.ru
 *.stackdump
+
+# Added by cargo
+
+/target
