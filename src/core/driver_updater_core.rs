@@ -66,12 +66,16 @@ impl DriverUpdaterCore {
         self.system_info = Some(SystemInfo::new()?);
         println!("系统信息获取完成");
         
-        // 启动Aria2 RPC服务器
+        // 尝试启动Aria2 RPC服务器，如果失败则记录警告但不中断初始化
         {
             let fetcher = self.driver_fetcher.lock().await;
-            fetcher.start_aria2_rpc().await?;
+            match fetcher.start_aria2_rpc().await {
+                Ok(_) => println!("Aria2 RPC服务器启动完成"),
+                Err(e) => {
+                    eprintln!("Aria2 RPC服务器启动失败: {}，将继续运行但下载功能可能受限", e);
+                }
+            }
         }
-        println!("Aria2 RPC服务器启动完成");
         
         Ok(())
     }
