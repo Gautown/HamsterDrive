@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::core::DriverUpdaterCore;
 use crate::os_info::SystemInfo;
 
+
 pub struct HamsterDriveApp {
     core: Arc<Mutex<Option<DriverUpdaterCore>>>,
     current_view: View,
@@ -17,11 +18,11 @@ pub struct HamsterDriveApp {
 
 #[derive(Debug, Clone, PartialEq)]
 enum View {
-    Dashboard,
     SystemInfo,
     HardwareScan,
     DriverUpdates,
     Settings,
+    About,
 }
 
 impl HamsterDriveApp {
@@ -44,10 +45,13 @@ impl HamsterDriveApp {
             .insert(0, "noto_sans_sc".to_owned());
         
         cc.egui_ctx.set_fonts(fonts);
+        
+        // 安装图像加载器以支持图片显示
+        egui_extras::install_image_loaders(&cc.egui_ctx);
 
         Self {
             core: Arc::new(Mutex::new(None)),
-            current_view: View::Dashboard,
+            current_view: View::SystemInfo,
             system_info: None,
             scan_results: String::new(),
             update_candidates: String::new(),
@@ -91,19 +95,24 @@ impl HamsterDriveApp {
             }
         }
     }
+    
 
     fn render_sidebar(&mut self, ui: &mut egui::Ui) {
+        // 使用egui::Image::from_bytes API直接显示图片
+        ui.add(egui::Image::from_bytes("HamsterDriveLogo", include_bytes!("../../assets/images/HamsterDrive64.png")).max_width(128.0));
+        
         // 导航菜单
-        self.sidebar_button(ui, "仪表板", View::Dashboard);
         self.sidebar_button(ui, "系统信息", View::SystemInfo);
         self.sidebar_button(ui, "硬件扫描", View::HardwareScan);
         self.sidebar_button(ui, "驱动更新", View::DriverUpdates);
-        self.sidebar_button(ui, "设置", View::Settings);
         
         ui.separator();
         
-        // 使用egui::Image加载并显示图片
-        ui.add(egui::Image::from_bytes("HamsterDriveLogo", include_bytes!("../../assets/images/HamsterDrive64.png")).max_width(128.0));
+        // 设置按钮放在分隔符下方
+        self.sidebar_button(ui, "设置", View::Settings);
+        
+        // 关于按钮放在设置按钮下方
+        self.sidebar_button(ui, "关于", View::About);
     }
 
     fn sidebar_button(&mut self, ui: &mut egui::Ui, label: &str, view: View) {
@@ -115,132 +124,86 @@ impl HamsterDriveApp {
     }
 
     fn render_dashboard(&mut self, ui: &mut egui::Ui) {
-        ui.heading("仪表板");
-        
+            
         // 初始化核心
         self.initialize_core();
-        
-        // 显示系统摘要在仪表板上方
+            
+        // 在进入UI闭包之前获取当前状态
+        let current_is_scanning = self.is_scanning;
+        let current_progress_text = self.progress_text.clone();
+        let current_scan_progress = self.scan_progress;
+                
+        // 定义需要执行的操作
+        let mut scan_clicked = false;
+        let mut find_updates_clicked = false;
+        let mut update_all_clicked = false;
+                
+        // 显示系统摘要、仪表盘和硬件摘要
         if let Ok(core_guard) = self.core.lock() {
             if let Some(ref core) = *core_guard {
                 if let Some(summary) = core.get_system_summary() {
-                    ui.separator();
+                            
                     ui.heading("系统摘要");
                     ui.label(&summary);
+                    ui.separator();
                 }
-                
+                        
+                ui.heading("仪表盘");
+                        
+                egui::Grid::new("dashboard_grid")
+                    .num_columns(2)
+                    .spacing([40.0, 4.0])
+                    .show(ui, |ui| {
+                        ui.label("功能:");
+                        ui.label("状态:");
+                        ui.end_row();
+                                
+                        if ui.button("扫描硬件").clicked() {
+                            scan_clicked = true;
+                        }
+                        ui.label(if current_is_scanning { "正在扫描..." } else { "就绪" });
+                        ui.end_row();
+                                
+                        if ui.button("查找驱动更新").clicked() {
+                            find_updates_clicked = true;
+                        }
+                        ui.label("就绪");
+                        ui.end_row();
+                                
+                        if ui.button("更新所有驱动").clicked() {
+                            update_all_clicked = true;
+                        }
+                        ui.label("就绪");
+                        ui.end_row();
+                    });
+                        
+                // 显示进度
+                if current_is_scanning {
+                    ui.label(&current_progress_text);
+                    ui.add(egui::ProgressBar::new(current_scan_progress).show_percentage());
+                }
+                        
                 if let Some(hardware_summary) = core.get_hardware_summary() {
                     ui.separator();
                     ui.heading("硬件摘要");
                     ui.label(&hardware_summary);
                 }
-                
-                ui.heading("更新摘要");
-                ui.label(&core.get_update_summary());
             }
         }
-        
-        ui.separator();
-        
-        egui::Grid::new("dashboard_grid")
-            .num_columns(2)
-            .spacing([40.0, 4.0])
-            .show(ui, |ui| {
-                ui.label("功能:");
-                ui.label("状态:");
-                ui.end_row();
                 
-                if ui.button("扫描硬件").clicked() {
-                    self.start_hardware_scan();
-                }
-                ui.label(if self.is_scanning { "正在扫描..." } else { "就绪" });
-                ui.end_row();
-                
-                if ui.button("查找驱动更新").clicked() {
-                    self.find_driver_updates();
-                }
-                ui.label("就绪");
-                ui.end_row();
-                
-                if ui.button("更新所有驱动").clicked() {
-                    self.update_all_drivers();
-                }
-                ui.label("就绪");
-                ui.end_row();
-            });
-        
-        // 显示进度
-        if self.is_scanning {
-            ui.label(&self.progress_text);
-            ui.add(egui::ProgressBar::new(self.scan_progress).show_percentage());
+        // 在UI更新后执行需要可变借用的方法
+        if scan_clicked {
+            self.start_hardware_scan();
+        }
+        if find_updates_clicked {
+            self.find_driver_updates();
+        }
+        if update_all_clicked {
+            self.update_all_drivers();
         }
     }
 
-    fn render_system_info(&mut self, ui: &mut egui::Ui) {
-        ui.heading("系统信息");
-        
-        self.initialize_core();
-        
-        if self.system_info.is_none() {
-            if let Ok(core_guard) = self.core.lock() {
-                if let Some(ref core) = *core_guard {
-                    self.system_info = core.system_info.clone();
-                }
-            }
-        }
-        
-        if let Some(ref sys_info) = self.system_info {
-            egui::Grid::new("system_info_grid")
-                .num_columns(2)
-                .spacing([20.0, 8.0])
-                .show(ui, |ui| {
-                    ui.label("Windows版本:");
-                    ui.label(&sys_info.windows_edition);
-                    ui.end_row();
-                    
-                    ui.label("内部版本号:");
-                    ui.label(&sys_info.windows_version);
-                    ui.end_row();
-                    
-                    ui.label("激活状态:");
-                    ui.label(&sys_info.windows_activation_status);
-                    ui.end_row();
-                    
-                    ui.label("DirectX:");
-                    ui.label(&sys_info.directx_version);
-                    ui.end_row();
-                    
-                    ui.label("制造商:");
-                    ui.label(&sys_info.manufacturer);
-                    ui.end_row();
-                    
-                    ui.label("型号:");
-                    ui.label(&sys_info.model);
-                    ui.end_row();
-                    
-                    ui.label("主板:");
-                    ui.label(&sys_info.motherboard);
-                    ui.end_row();
-                    
-                    ui.label("处理器:");
-                    ui.label(&sys_info.cpu);
-                    ui.end_row();
-                    
-                    ui.label("内存:");
-                    ui.label(&sys_info.memory_info);
-                    ui.end_row();
-                    
-                    ui.label("显卡:");
-                    ui.label(&sys_info.gpu);
-                    ui.end_row();
-                });
-        } else {
-            ui.label("正在加载系统信息...");
-            if ui.button("刷新").clicked() {
-                self.system_info = None;
-            }
-        }
-    }
+
 
     fn render_hardware_scan(&mut self, ui: &mut egui::Ui) {
         ui.heading("硬件扫描");
@@ -330,6 +293,16 @@ impl HamsterDriveApp {
         if ui.button("保存设置").clicked() {
             // 保存设置功能待实现
         }
+        
+    }
+
+    fn render_about(&mut self, ui: &mut egui::Ui) {
+        ui.heading("关于");
+        ui.label(format!("HamsterDrivers - Windows驱动管理工具"));
+        ui.label(format!("版本: {}", env!("CARGO_PKG_VERSION")));
+        ui.label("作者: Gautown");
+        ui.label("许可证: MIT");
+        ui.label("这是一个功能强大的Windows驱动管理工具，旨在帮助用户自动扫描、识别、比较厂商服务器上的驱动版本，并下载安装最新驱动。");
     }
 
     fn start_hardware_scan(&mut self) {
@@ -471,23 +444,15 @@ impl eframe::App for HamsterDriveApp {
                 self.render_sidebar(ui);
             });
         
-        egui::TopBottomPanel::top("header").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("关于").clicked() {
-                        // 关于对话框待实现
-                    }
-                });
-            });
-        });
+
         
         egui::CentralPanel::default().show(ctx, |ui| {
             match self.current_view {
-                View::Dashboard => self.render_dashboard(ui),
-                View::SystemInfo => self.render_system_info(ui),
+                View::SystemInfo => self.render_dashboard(ui),
                 View::HardwareScan => self.render_hardware_scan(ui),
                 View::DriverUpdates => self.render_driver_updates(ui),
                 View::Settings => self.render_settings(ui),
+                View::About => self.render_about(ui),
             }
         });
         

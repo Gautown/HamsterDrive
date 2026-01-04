@@ -1,6 +1,6 @@
 [package]
 name = "hamster-drivers"
-version = "0.1.0"
+version = "0.0.01"
 edition = "2021"
 license = "MIT"
 
@@ -8,6 +8,7 @@ license = "MIT"
 eframe = "0.27"
 egui = "0.27"
 egui_extras = { version = "0.27", features = ["image"] }
+image = "0.24"
 wmi = "0.14"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.0", features = ["full"] }
