@@ -1,0 +1,9 @@
+pub mod types;
+pub mod os_info;
+pub mod hardware;
+pub mod matcher;
+pub mod fetcher;
+pub mod installer;
+pub mod core;
+pub mod ui;
+pub mod utils;

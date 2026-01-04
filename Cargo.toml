@@ -1,0 +1,35 @@
+[package]
+name = "hamster-drivers"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+eframe = "0.27"
+egui = "0.27"
+egui_extras = { version = "0.27", features = ["image"] }
+wmi = "0.14"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.0", features = ["full"] }
+tokio-stream = "0.1"
+futures-util = "0.3"
+winsafe = { version = "0.0.19", features = ["kernel", "user"] }
+sysinfo = "0.30"
+reqwest = { version = "0.12", features = ["json", "stream"] }
+scraper = "0.18"
+serde_json = "1.0"
+toml = "0.8"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "chrono", "migrate"] }
+chrono = { version = "0.4", features = ["serde"] }
+walkdir = "2.5"
+winapi = { version = "0.3", features = ["sysinfoapi", "winuser", "processthreadsapi"] }
+
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dirs = "5.0"
+once_cell = "1.19"
+regex = "1.10"
+sha2 = "0.10"
+env_logger = "0.11"
